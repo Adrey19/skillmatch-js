@@ -100,16 +100,50 @@ function classificarCompatibilidade(percentual) {
 
 // ===== 4. EXECUÇÃO =====
 
+// RF08: map transforma cada vaga em um objeto com a análise completa
+function analisarVagas(vagas, habilidades) {
+  return vagas.map((vaga) => {
+    const percentual = vaga.calcularCompatibilidade(habilidades);
+    return {
+      vaga,
+      percentual,
+      classificacao: classificarCompatibilidade(percentual),
+      faltantes: vaga.habilidadesFaltantes(habilidades),
+    };
+  });
+}
+
+// RF06: reduce percorre as análises guardando a de maior percentual
+function encontrarMelhorVaga(analises) {
+  return analises.reduce((melhor, atual) =>
+    atual.percentual > melhor.percentual ? atual : melhor
+  );
+}
+
 console.log("Candidato:", candidato.nome, "-", candidato.areaInteresse);
 console.log("Experiência:", candidato.experienciaProfissional, "meses");
 console.log("Habilidades:", candidato.habilidades.join(", "));
 console.log("");
 
-for (const vaga of vagasDisponiveis) {
-  const percentual = vaga.calcularCompatibilidade(candidato.habilidades);
-  const faltantes = vaga.habilidadesFaltantes(candidato.habilidades);
+const analises = analisarVagas(vagasDisponiveis, candidato.habilidades);
 
-  console.log(vaga.resumo());
-  console.log(`  Compatibilidade: ${percentual}% (${classificarCompatibilidade(percentual)})`);
-  console.log(`  Faltam: ${faltantes.length > 0 ? faltantes.join(", ") : "nenhuma"}`);
+for (const analise of analises) {
+  console.log(analise.vaga.resumo());
+  console.log(`  Compatibilidade: ${analise.percentual}% (${analise.classificacao})`);
+  console.log(
+    `  Faltam: ${analise.faltantes.length > 0 ? analise.faltantes.join(", ") : "nenhuma"}`
+  );
+}
+
+const melhor = encontrarMelhorVaga(analises);
+console.log(
+  `\nMelhor vaga: ${melhor.vaga.cargo} na ${melhor.vaga.empresa} (${melhor.percentual}%)`
+);
+
+// find devolve a primeira análise que passa no teste (ou undefined)
+const primeiraAlta = analises.find((a) => a.classificacao === "Alta compatibilidade");
+if (primeiraAlta) {
+  console.log(`Primeira vaga com alta compatibilidade: ${primeiraAlta.vaga.empresa}`);
+} else {
+  console.log("Nenhuma vaga com alta compatibilidade.");
 }
