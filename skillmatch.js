@@ -142,6 +142,19 @@ function criarContador() {
   };
 }
 
+// RF14: simula um servidor que devolve as vagas depois de um atraso
+function buscarVagasNoServidor(vagas, deveFalhar) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (deveFalhar) {
+        reject("Erro 500: servidor indisponível");
+      } else{
+        resolve(vagas);
+      }
+    }, 3000)
+  });
+}
+
 // RF08: map transforma cada vaga em um objeto com a análise completa
 function analisarVagas(vagas, habilidades) {
   return vagas.map((vaga) => {
@@ -164,31 +177,43 @@ function encontrarMelhorVaga(analises) {
 
 // ===== 5. EXECUÇÃO =====
 
-console.log("Candidato:", candidato.nome, "-", candidato.areaInteresse);
-console.log("Experiência:", candidato.experienciaProfissional, "meses");
-console.log("Habilidades:", juntarTexto(candidato.habilidades));
-console.log("");
+// RF14: função assíncrona que aguarda o carregamento e trata o erro
+async function iniciar() {
+  console.log("Candidato:", candidato.nome, "-", candidato.areaInteresse);
+  console.log("Experiência:", candidato.experienciaProfissional, "meses");
+  console.log("Habilidades:", juntarTexto(candidato.habilidades));
+  console.log("");
 
-const analises = analisarVagas(vagasDisponiveis, candidato.habilidades);
-const proximoNumero = criarContador();
+  try {
+    console.log("Carregando vagas do servidor...");
+    const vagas = await buscarVagasNoServidor(vagasDisponiveis, false);
+    console.log("Vagas carregadas: " + vagas.length + "\n");
 
-percorrerItens(analises, (analise) => {
-  console.log(`#${proximoNumero()} ${analise.vaga.resumo()}`);
-  console.log(`  Compatibilidade: ${analise.percentual}% (${analise.classificacao})`);
-  console.log(
-    `  Faltam: ${analise.faltantes.length > 0 ? juntarTexto(analise.faltantes) : "nenhuma"}`
-  );
-});
+    const analises = analisarVagas(vagas, candidato.habilidades);
+    const proximoNumero = criarContador();
 
-const melhor = encontrarMelhorVaga(analises);
-console.log(
-  `\nMelhor vaga: ${melhor.vaga.cargo} na ${melhor.vaga.empresa} (${melhor.percentual}%)`
-);
+    percorrerItens(analises, (analise) => {
+      console.log(`#${proximoNumero()} ${analise.vaga.resumo()}`);
+      console.log(`  Compatibilidade: ${analise.percentual}% (${analise.classificacao})`);
+      console.log(
+        `  Faltam: ${analise.faltantes.length > 0 ? juntarTexto(analise.faltantes) : "nenhuma"}`
+      );
+    });
 
-// find devolve a primeira análise que passa no teste (ou undefined)
-const primeiraAlta = analises.find((a) => a.classificacao === "Alta compatibilidade");
-if (primeiraAlta) {
-  console.log(`Primeira vaga com alta compatibilidade: ${primeiraAlta.vaga.empresa}`);
-} else {
-  console.log("Nenhuma vaga com alta compatibilidade.");
+    const melhor = encontrarMelhorVaga(analises);
+    console.log(
+      `\nMelhor vaga: ${melhor.vaga.cargo} na ${melhor.vaga.empresa} (${melhor.percentual}%)`
+    );
+
+    const primeiraAlta = analises.find((a) => a.classificacao === "Alta compatibilidade");
+    if (primeiraAlta) {
+      console.log(`Primeira vaga com alta compatibilidade: ${primeiraAlta.vaga.empresa}`);
+    } else {
+      console.log("Nenhuma vaga com alta compatibilidade.");
+    }
+  } catch (erro) {
+    console.log("Falha ao carregar as vagas: " + erro);
+  }
 }
+
+iniciar();
