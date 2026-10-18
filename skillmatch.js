@@ -10,7 +10,31 @@ const candidato = {
   habilidades: ["HTML", "CSS", "JavaScript", "Git", "GitHub", "Flexbox"],
 };
 
-// ===== 2. CLASSES =====
+// ===== 2. FUNÇÕES AUXILIARES =====
+
+// Procura um requisito na lista de habilidades usando for + if
+function possuiHabilidade(habilidades, requisito) {
+  for (let i = 0; i < habilidades.length; i++) {
+    if (habilidades[i] === requisito) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// Junta os itens de uma lista em um único texto, separados por vírgula
+function juntarTexto(lista) {
+  let texto = "";
+  for (let i = 0; i < lista.length; i++) {
+    if (i > 0) {
+      texto = texto + ", ";
+    }
+    texto = texto + lista[i];
+  }
+  return texto;
+}
+
+// ===== 3. CLASSES =====
 
 // RF09: classe base que representa uma vaga
 class Vaga {
@@ -28,14 +52,18 @@ class Vaga {
 
   // RF05: requisitos que o candidato ainda não tem
   habilidadesFaltantes(habilidadesCandidato) {
-    return this.requisitos.filter((req) => !habilidadesCandidato.includes(req));
+    return this.requisitos.filter(
+      (req) => !possuiHabilidade(habilidadesCandidato, req)
+    );
   }
 
-  // RF03: percentual de compatibilidade (0 a 100)
+  // RF03: percentual de compatibilidade (0 a 100), sem casas decimais
   calcularCompatibilidade(habilidadesCandidato) {
-    const atendidos =
-      this.requisitos.length - this.habilidadesFaltantes(habilidadesCandidato).length;
-    return Math.round((atendidos / this.requisitos.length) * 100);
+    const total = this.requisitos.length;
+    const atendidos = total - this.habilidadesFaltantes(habilidadesCandidato).length;
+    const bruto = atendidos * 100;
+    // o resto da divisão (%) é a parte que "sobra"; ao tirá-lo, a divisão fica exata
+    return (bruto - (bruto % total)) / total;
   }
 }
 
@@ -46,9 +74,9 @@ class VagaRemota extends Vaga {
     this.fusoHorario = fusoHorario;
   }
 
-  // sobrescreve o método da classe pai, reaproveitando o resumo original
+  // sobrescreve o método da classe pai
   resumo() {
-    return `${super.resumo()} [Remota, fuso ${this.fusoHorario}]`;
+    return `Vaga ${this.id}: ${this.cargo} na ${this.empresa} (${this.requisitos.length} requisitos) [Remota, fuso ${this.fusoHorario}]`;
   }
 }
 
@@ -85,7 +113,7 @@ const vagasDisponiveis = [
   ]),
 ];
 
-// ===== 3. FUNÇÕES DE REGRA =====
+// ===== 4. FUNÇÕES DE REGRA =====
 
 // RF04: classificação com if/else
 function classificarCompatibilidade(percentual) {
@@ -98,7 +126,21 @@ function classificarCompatibilidade(percentual) {
   }
 }
 
-// ===== 4. EXECUÇÃO =====
+// RF12: callback. Recebe uma função (aoPercorrer) e a executa para cada item
+function percorrerItens(itens, aoPercorrer) {
+  for (let i = 0; i < itens.length; i++) {
+    aoPercorrer(itens[i]);
+  }
+}
+
+// RF13: closure. O contador fica guardado dentro da função e persiste entre chamadas
+function criarContador() {
+  let total = 0;
+  return function () {
+    total++;
+    return total;
+  };
+}
 
 // RF08: map transforma cada vaga em um objeto com a análise completa
 function analisarVagas(vagas, habilidades) {
@@ -120,20 +162,23 @@ function encontrarMelhorVaga(analises) {
   );
 }
 
+// ===== 5. EXECUÇÃO =====
+
 console.log("Candidato:", candidato.nome, "-", candidato.areaInteresse);
 console.log("Experiência:", candidato.experienciaProfissional, "meses");
-console.log("Habilidades:", candidato.habilidades.join(", "));
+console.log("Habilidades:", juntarTexto(candidato.habilidades));
 console.log("");
 
 const analises = analisarVagas(vagasDisponiveis, candidato.habilidades);
+const proximoNumero = criarContador();
 
-for (const analise of analises) {
-  console.log(analise.vaga.resumo());
+percorrerItens(analises, (analise) => {
+  console.log(`#${proximoNumero()} ${analise.vaga.resumo()}`);
   console.log(`  Compatibilidade: ${analise.percentual}% (${analise.classificacao})`);
   console.log(
-    `  Faltam: ${analise.faltantes.length > 0 ? analise.faltantes.join(", ") : "nenhuma"}`
+    `  Faltam: ${analise.faltantes.length > 0 ? juntarTexto(analise.faltantes) : "nenhuma"}`
   );
-}
+});
 
 const melhor = encontrarMelhorVaga(analises);
 console.log(
